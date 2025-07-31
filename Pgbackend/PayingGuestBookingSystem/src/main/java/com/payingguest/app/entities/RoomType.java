@@ -37,7 +37,9 @@ public class RoomType {
     private PgListing pg;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "room_category", nullable = false)
     private RoomCategory roomCategory;
+
 
     private BigDecimal price;
     private int totalBeds;

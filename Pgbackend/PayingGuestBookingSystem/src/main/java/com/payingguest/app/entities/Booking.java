@@ -44,7 +44,9 @@ public class Booking {
     private LocalDate moveOutDate;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private BookingStatus status;
+
 
     @ManyToOne
     @JoinColumn(name = "room_type_id")

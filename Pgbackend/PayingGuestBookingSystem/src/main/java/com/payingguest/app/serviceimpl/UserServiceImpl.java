@@ -62,15 +62,14 @@ public class UserServiceImpl implements UserService {
 
     private AuthResponseDTO buildAuthResponse(User user, String token) {
         return AuthResponseDTO.builder()
+                .status(200)
+                .message("Login successful")
+                .timestamp(java.time.LocalDateTime.now())
                 .token(token)
-                .userType(user.getUserType().name())
+                .userType(user.getUserType().name().toLowerCase()) // lowercase for old format
                 .isActive(user.isActive())
                 .expirationTime("6 months")
-                .user(PublicUserDTO.builder()
-                        .fullName(user.getFullName())
-                        .email(user.getEmail())
-                        .phoneNumber(user.getPhoneNumber())
-                        .build())
                 .build();
     }
+
 }

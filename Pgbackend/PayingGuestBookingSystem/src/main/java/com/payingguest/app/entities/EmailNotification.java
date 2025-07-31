@@ -40,7 +40,9 @@ public class EmailNotification {
     private String emailBody;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private NotificationStatus status;
+
 
     @Column(updatable = false, insertable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp sentAt;

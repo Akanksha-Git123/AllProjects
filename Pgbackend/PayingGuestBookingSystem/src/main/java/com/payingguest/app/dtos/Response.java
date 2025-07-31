@@ -30,27 +30,10 @@ public class Response {
     private PublicUserDTO user;
     private List<PublicUserDTO> users;
 
-//    // PG Listings
-//    private PgListingDTO pg;
-//    private List<PgListingDTO> pgs;
-//
-//    // Bookings
-//    private BookingDTO booking;
-//    private List<BookingDTO> bookings;
-//
-//    // Payments
-//    private PaymentDTO payment;
-//    private List<PaymentDTO> payments;
-//
-//    // Reviews
-//    private ReviewDTO review;
-//    private List<ReviewDTO> reviews;
-//
-//    // Notifications
-//    private NotificationDTO notification;
-//    private List<NotificationDTO> notifications;
+    // PG Listings
+    private PgListingResponseDTO pg;
+    private List<PgListingResponseDTO> pgs;
 
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();
-
 }

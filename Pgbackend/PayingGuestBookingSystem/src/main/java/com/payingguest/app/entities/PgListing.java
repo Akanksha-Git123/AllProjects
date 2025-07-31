@@ -39,7 +39,9 @@ public class PgListing {
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
+    @Column(name = "pg_name")
     private String pgName;
+
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -52,14 +54,20 @@ public class PgListing {
     private String pincode;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "gender_allowed")
     private GenderAllowed genderAllowed;
 
-    private int totalRooms;
+
+    @Column(name = "total_rooms")
+    private Integer totalRooms;
+
 
     @Column(updatable = false, insertable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp createdAt;
 
+    @Column(name = "deleted_at")
     private Timestamp deletedAt;
+
 
     @OneToMany(mappedBy = "pg")
     private List<RoomType> roomTypes;

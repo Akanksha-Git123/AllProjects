@@ -31,6 +31,10 @@ public class PgImage {
     @JoinColumn(name = "pg_id", nullable = false)
     private PgListing pg;
 
+    @ManyToOne
+    @JoinColumn(name = "room_type_id", nullable = true)
+    private RoomType roomType;
+
     @Column(columnDefinition = "TEXT", nullable = false)
     private String imageUrl;
 
@@ -39,5 +43,3 @@ public class PgImage {
 
     private Timestamp deletedAt;
 }
-
-
