@@ -1,9 +1,16 @@
 package com.payingguest.app.dtos;
 
-import com.payingguest.app.entities.PgListing;
 import com.payingguest.app.enums.GenderAllowed;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.util.List;
+
+/**
+ * DTO to represent PG Listing details along with assigned amenities.
+ */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -20,5 +27,7 @@ public class PgListingResponseDTO {
     private GenderAllowed genderAllowed;
     private Integer totalRooms;
 
+    private List<AmenityResponseDTO> amenities;
+    //private List<ImageResponseDTO> pgImages;
     
 }

@@ -30,6 +30,7 @@ public class RoomType {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "room_type_id")  // <-- Must match DB exactly
     private Integer roomTypeId;
 
     @ManyToOne
@@ -42,11 +43,16 @@ public class RoomType {
 
 
     private BigDecimal price;
-    private int totalBeds;
-    private int availableBeds;
+    @Column(name = "total_beds")
+    private Integer totalBeds;
 
-    @Column(updatable = false, insertable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    @Column(name = "available_beds")
+    private Integer availableBeds;
+   
+    @Column(name = "created_at", updatable = false, insertable = false, 
+            columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp createdAt;
 
+    @Column(name = "deleted_at")
     private Timestamp deletedAt;
 }

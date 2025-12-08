@@ -39,10 +39,20 @@ public class AuthFilter extends OncePerRequestFilter {
                     UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
 
                     if (jwtUtils.isTokenValid(token, userDetails)) {
-                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
+                        // 🔍 TEMP DEBUG LOG - You can remove/comment this after confirming it's correct
+                        log.info("Setting authentication for user: {}, roles: {}", userDetails.getUsername(), userDetails.getAuthorities());
+
+                        UsernamePasswordAuthenticationToken authToken =
+                                new UsernamePasswordAuthenticationToken(
+                                        userDetails, null, userDetails.getAuthorities());
+
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authToken);
+                        var auth = SecurityContextHolder.getContext().getAuthentication();
+                        if (auth != null && auth.isAuthenticated()) {
+                            log.info("✅ Authenticated user from context: {}", auth.getName());
+                            log.info("✅ Roles from context: {}", auth.getAuthorities());
+                        }
                     }
                 }
             }

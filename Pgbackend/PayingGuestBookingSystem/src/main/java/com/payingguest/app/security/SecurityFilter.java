@@ -21,7 +21,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+
 @RequiredArgsConstructor
 public class SecurityFilter {
 
@@ -40,6 +41,8 @@ public class SecurityFilter {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll() // Public endpoints
+                .requestMatchers("/api/pg-listings/**").permitAll()
+                .requestMatchers("/api/pg-listings/pgsummary").permitAll()
                 .anyRequest().authenticated()                // Everything else needs auth
             )
             .sessionManagement(session -> session

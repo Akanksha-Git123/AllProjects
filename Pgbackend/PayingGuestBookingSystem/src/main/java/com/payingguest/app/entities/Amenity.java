@@ -23,11 +23,14 @@ public class Amenity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "amenity_id")
     private Integer amenityId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
+
+    @Column(name = "deleted_at")
     private Timestamp deletedAt;
 }
 

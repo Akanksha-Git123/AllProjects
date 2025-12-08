@@ -31,6 +31,7 @@ public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "payment_id") // ✅ This must match DB
     private Integer paymentId;
 
     @ManyToOne

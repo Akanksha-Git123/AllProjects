@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+
 @Builder
 @Getter
 @AllArgsConstructor
@@ -19,37 +20,44 @@ public class AuthUser implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Ensures role prefix is compatible with Spring Security
         return List.of(new SimpleGrantedAuthority("ROLE_" + user.getUserType().name()));
     }
 
     @Override
     public String getPassword() {
-        return user.getPasswordHash();  // Use passwordHash field
+        return user.getPasswordHash();
     }
 
     @Override
     public String getUsername() {
-        return user.getEmail(); // Use email as username
+        return user.getEmail();
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return true;  // You can update this based on DB logic later
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;  // Or use a flag like user.isLocked() if added
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;  // Add logic if needed for password expiry
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return user.isActive();  // Reflects actual user status from DB
+        return user.isActive();
     }
+
+    // ✅ Just delegate to the User entity’s ID
+    public Long getUserId() {
+        return user != null && user.getUserId() != null
+            ? user.getUserId().longValue()
+            : null;
+    }
+
 }
