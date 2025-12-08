@@ -1,0 +1,679 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Spring]]></title><description><![CDATA[Level up your Java code and explore what Spring can do for you.]]></description><link>https://spring.io</link><generator>GatsbyJS</generator><lastBuildDate>Tue, 28 Oct 2025 18:19:31 GMT</lastBuildDate><item><title><![CDATA[Modularizing Spring Boot]]></title><link>https://spring.io/blog/2025/10/28/modularizing-spring-boot</link><guid isPermaLink="true">https://spring.io/blog/2025/10/28/modularizing-spring-boot</guid><dc:creator><![CDATA[spring-boot-team]]></dc:creator><pubDate>Tue, 28 Oct 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;Continuing our &lt;a href=&quot;https://spring.io/blog/2025/09/02/road_to_ga_introduction&quot;&gt;Road to GA series&lt;/a&gt;, this week we&apos;re exploring the modularization effort happening with Spring Boot 4.&lt;/p&gt;
+&lt;p&gt;When Spring Boot 1.0 was released in 2014, it shipped with a single &lt;code&gt;spring-boot-autoconfigure&lt;/code&gt; jar weighing in at 182 KiB.
+Of course, that initial version didn&apos;t support a great deal, but over the years, that has changed.&lt;/p&gt;
+&lt;p&gt;One of Spring&apos;s greatest strengths is the sheer number of technologies that it supports, but each new technology brings a cost.
+Each time we support something new, the autoconfigure jar grows.
+With Spring Boot 3.5, that single &lt;code&gt;spring-boot-autoconfigure&lt;/code&gt; jar is now 2 MiB!&lt;/p&gt;
+&lt;p&gt;While disk space is cheap, most of the classes actually aren&apos;t interesting for you because they target a technology you may not have in your application.
+That means you&apos;ll get a lot of auto-complete suggestions for classes and configuration properties that are just unnecessary.
+This adds confusion and mental load, and we&apos;re going to change that with Spring Boot 4.&lt;/p&gt;
+&lt;p&gt;So, grab a mind-soothing tea and join us for the ride!&lt;/p&gt;
+&lt;h2 id=&quot;a-modular-spring-boot-4&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#a-modular-spring-boot-4&quot; aria-label=&quot;a modular spring boot 4 permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;A Modular Spring Boot 4&lt;/h2&gt;
+&lt;p&gt;In Spring Boot 4, we are introducing a fundamental change in how auto-configurations are packaged, delivered, and consumed.
+Instead of a single, monolithic &lt;code&gt;spring-boot-autoconfigure&lt;/code&gt; jar, we are now splitting functionality into small and more focused modules.&lt;/p&gt;
+&lt;p&gt;This change is motivated by maintainability, clarity, and a leaner runtime footprint.
+It has ripple effects in package structure, starters, and how end users migrate from Spring Boot 3 to Spring Boot 4.
+Every technology supported by Spring Boot now has its own starter, some of which are new in Spring Boot 4.&lt;/p&gt;
+&lt;h2 id=&quot;why-modularize-the-codebase&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#why-modularize-the-codebase&quot; aria-label=&quot;why modularize the codebase permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Why Modularize the Codebase?&lt;/h2&gt;
+&lt;p&gt;Now, you may ask yourself: why do this?
+Why touch almost everything in the codebase and split it up?
+In fact, this has been a very challenging piece of work, and one that we started before Spring Boot 3.5 was even released.
+The benefits, however, are quite compelling:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Maintainability and architectural clarity&lt;/strong&gt;:
+With smaller modules and enforced boundaries, the team and our contributors can reason about each domain more clearly.
+Module boundaries become contracts rather than soft conventions.
+Your IDE also offers a much more focused view of the world.
+No more code completion suggestions of classes you&apos;re never going to need, and only the configuration properties you&apos;re actually using show up in the IDE popups.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Reduced artifact sizes and footprint&lt;/strong&gt;:
+Instead of shipping one large autoconfigure jar containing many features you might not use, your application only pulls in the relevant modules.
+This reduces classpath overhead, startup scan costs, and disk space.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Stronger signals and avoidance of accidental auto-configuration&lt;/strong&gt;:
+Because modules are scoped, Spring Boot has a much stronger signal about the reason you&apos;ve pulled in a dependency.
+Did you include the &lt;code&gt;spring-webflux&lt;/code&gt; jar for server-side &lt;code&gt;@Controller&lt;/code&gt; support, or because you want to use &lt;code&gt;WebClient&lt;/code&gt;?
+With focused modules, we actually know.
+You&apos;ll never again need to call &lt;code&gt;SpringApplication.setWebApplicationType(WebApplicationType.NONE)&lt;/code&gt; because there won&apos;t even be any web server auto-configuration on the classpath if you&apos;re only using &lt;code&gt;WebClient&lt;/code&gt; through the new &lt;code&gt;spring-boot-webclient&lt;/code&gt; module.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;New use-cases enabled&lt;/strong&gt;:
+We&apos;re already seeing modularization open up new use-cases, and we think there will be more in the future.
+For example, you may now use Micrometer metrics independently of Actuator.
+You may bring in just the module that publishes metrics without needing the full actuator dependency chain, which is difficult with Spring Boot 3.&lt;/p&gt;
+&lt;h2 id=&quot;test-support&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#test-support&quot; aria-label=&quot;test support permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Test Support&lt;/h2&gt;
+&lt;p&gt;It turns out that &lt;code&gt;spring-boot-autoconfigure&lt;/code&gt; is not the only jar that needed modularizing.
+Whilst not as large, the &lt;code&gt;spring-boot-test-autoconfigure&lt;/code&gt; jar also needed to be split up.
+For example, the &lt;code&gt;@AutoConfigureDataJdbc&lt;/code&gt; annotation is used for testing Spring Data JDBC, so it should be aligned with the &lt;code&gt;spring-boot-data-jdbc&lt;/code&gt; module.&lt;/p&gt;
+&lt;p&gt;We didn&apos;t want to put test support code in the module itself, so instead we&apos;ve created test-specific modules.
+For our example above, the annotation moved to a &lt;code&gt;spring-boot-data-jdbc-test&lt;/code&gt; jar.&lt;/p&gt;
+&lt;p&gt;To help keep things simple, we&apos;ve also made sure there&apos;s a test starter POM for every regular starter that we ship.
+For example, if your app depends on &lt;code&gt;spring-boot-starter-webmvc&lt;/code&gt; then it should also have a test-scoped dependency on &lt;code&gt;spring-boot-starter-webmvc-test&lt;/code&gt;.&lt;/p&gt;
+&lt;h2 id=&quot;how-to-migrate-to-spring-boot-4&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#how-to-migrate-to-spring-boot-4&quot; aria-label=&quot;how to migrate to spring boot 4 permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;How to Migrate to Spring Boot 4&lt;/h2&gt;
+&lt;p&gt;The effort involved with migrating an application from Spring Boot 3 to 4 will vary depending on a number of factors.
+For most applications, we hope the process will be just a few updates to your &lt;code&gt;pom.xml&lt;/code&gt; or &lt;code&gt;build.gradle&lt;/code&gt; file and a few package import fixes.&lt;/p&gt;
+&lt;p&gt;Here&apos;s the process that most applications should follow:&lt;/p&gt;
+&lt;h3 id=&quot;1-refine-your-main-starter-dependencies&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#1-refine-your-main-starter-dependencies&quot; aria-label=&quot;1 refine your main starter dependencies permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;1. Refine Your Main Starter Dependencies&lt;/h3&gt;
+&lt;p&gt;All existing starters now pull in their related modules transitively.
+This means that if you&apos;re already using starters, your application will have most of the modules that it needs.
+One thing you might need to do is add starters for technologies that previously didn&apos;t have one.
+Here&apos;s a typical Spring Boot 3 web application Maven POM:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-xml&quot;&gt;&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-web&amp;#x3C;/artifactId&gt;
+&amp;#x3C;/dependency&gt;
+&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-security&amp;#x3C;/artifactId&gt;
+&amp;#x3C;/dependency&gt;
+&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.flywaydb&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;flyway-core&amp;#x3C;/artifactId&gt;
+&amp;#x3C;/dependency&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;In Spring Boot 3, Flyway would be auto-configured when the Flyway jar was present.
+With Spring Boot 4, you&apos;ll now need to include the Flyway starter to make sure you have the &lt;code&gt;spring-boot-flyway&lt;/code&gt; module.
+We&apos;ve also taken the opportunity to rename a few starters to make them more consistent.
+Here, the &lt;code&gt;web&lt;/code&gt; starter is now named &lt;code&gt;webmvc&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-xml&quot;&gt;&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-webmvc&amp;#x3C;/artifactId&gt;
+&amp;#x3C;/dependency&gt;
+&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-security&amp;#x3C;/artifactId&gt;
+&amp;#x3C;/dependency&gt;
+&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-flyway&amp;#x3C;/artifactId&gt;
+&amp;#x3C;/dependency&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;You can find the list of starters for every technology in &lt;a href=&quot;https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#starters&quot;&gt;the migration guide&lt;/a&gt;.&lt;/p&gt;
+&lt;h3 id=&quot;2-use-the-new-test-starters&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#2-use-the-new-test-starters&quot; aria-label=&quot;2 use the new test starters permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;2. Use the New Test Starters&lt;/h3&gt;
+&lt;p&gt;Each of the main starters that you use has a corresponding test starter that you&apos;ll also want to add.
+Doing so ensures you get the correct testing support.
+Make sure that you add the test starters to the &lt;code&gt;test&lt;/code&gt; scope.
+For our example application above, we&apos;d use the following test starters:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-xml&quot;&gt;&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-webmvc-test&amp;#x3C;/artifactId&gt;
+  &amp;#x3C;scope&gt;test&amp;#x3C;/scope&gt;
+&amp;#x3C;/dependency&gt;
+&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-security-test&amp;#x3C;/artifactId&gt;
+  &amp;#x3C;scope&gt;test&amp;#x3C;/scope&gt;
+&amp;#x3C;/dependency&gt;
+&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-flyway-test&amp;#x3C;/artifactId&gt;
+  &amp;#x3C;scope&gt;test&amp;#x3C;/scope&gt;
+&amp;#x3C;/dependency&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This will include everything you need to test web components, controllers, mock MVC, security, and Flyway.&lt;/p&gt;
+&lt;h3 id=&quot;3-adjust-manual-or-custom-configuration&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#3-adjust-manual-or-custom-configuration&quot; aria-label=&quot;3 adjust manual or custom configuration permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;3. Adjust Manual or Custom Configuration&lt;/h3&gt;
+&lt;p&gt;If your project or any custom starter previously depended on &lt;code&gt;spring-boot-autoconfigure&lt;/code&gt; or pulled in auto-configuration classes manually, you will need to replace those imports/dependencies with the new modular equivalents.&lt;/p&gt;
+&lt;p&gt;You&apos;ll also need to update package names if you reference Spring Boot&apos;s packages.
+Because modules now begin with &lt;code&gt;org.springframework.boot.&amp;#x3C;module&gt;&lt;/code&gt;, imports of auto-configuration support classes may need to change.
+The same also applies to customizers, for example.&lt;/p&gt;
+&lt;h3 id=&quot;4-review-custom-starters-and-shared-libraries&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#4-review-custom-starters-and-shared-libraries&quot; aria-label=&quot;4 review custom starters and shared libraries permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;4. Review Custom Starters and Shared Libraries&lt;/h3&gt;
+&lt;p&gt;If your organization maintains custom Spring Boot starters or shared dependencies, you should reevaluate them in light of modularization.
+We strongly discourage supporting both Spring Boot 3 and 4 within the same artifact, due to refactorings in package names and modules.&lt;/p&gt;
+&lt;h2 id=&quot;classic-modules&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#classic-modules&quot; aria-label=&quot;classic modules permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Classic Modules&lt;/h2&gt;
+&lt;p&gt;To ease the transition, Spring Boot 4 retains Classic Starter POMs.
+These &quot;classic starters&quot; bundle all the (modular) auto-configuration modules without their transitive dependencies.
+In effect, the classic starters act as a helpful tool if you have problems upgrading.
+You can adopt classic starters to &quot;get up and running&quot;, fix any package imports, and then, over time, migrate to more selective module dependencies.
+To use the classic starters, your dependencies would look something like this:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-xml&quot;&gt;&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-classic&amp;#x3C;/artifactId&gt;
+&amp;#x3C;/dependency&gt;
+&amp;#x3C;dependency&gt;
+  &amp;#x3C;groupId&gt;org.springframework.boot&amp;#x3C;/groupId&gt;
+  &amp;#x3C;artifactId&gt;spring-boot-starter-test-classic&amp;#x3C;/artifactId&gt;
+  &amp;#x3C;scope&gt;test&amp;#x3C;/scope&gt;
+&amp;#x3C;/dependency&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&quot;conclusion&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#conclusion&quot; aria-label=&quot;conclusion permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;Spring Boot 4&apos;s modularization of auto-configurations is a deliberate architectural step toward a more maintainable, composable, and lean framework.
+By splitting functionality into focused modules, introducing classic starters, and providing test-starters, Spring Boot gives you the tools for an incremental upgrade path.
+While there is some migration overhead (especially for custom or deeply coupled code), the benefits in clarity, footprint, and runtime behavior make it a worthwhile investment.&lt;/p&gt;
+&lt;p&gt;If you&apos;re planning a migration, try to use just the modules you need to create a lighter and more expressive application.
+If you need more time to complete your migration, use the classic starters and adopt modularization when it fits your schedule.&lt;/p&gt;
+&lt;p&gt;As always, we welcome any feedback that you might have.
+If you find bugs, please report them on our &lt;a href=&quot;https://github.com/spring-projects/spring-boot/issues&quot;&gt;GitHub issue tracker&lt;/a&gt;.
+Thank you to everyone who has been following the milestones and release candidates and has already done so.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Spring Tools 4.32.1 released]]></title><link>https://spring.io/blog/2025/10/28/spring-tools-4-32-1-released</link><guid isPermaLink="true">https://spring.io/blog/2025/10/28/spring-tools-4-32-1-released</guid><dc:creator><![CDATA[martinlippert]]></dc:creator><pubDate>Tue, 28 Oct 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;On behalf of the team and everyone who has contributed, I am pleased to announce the 4.32.1 release of the Spring Tools
+for Visual Studio Code, Eclipse and Theia.&lt;/p&gt;
+&lt;p&gt;This is a maintenance release that includes 4 bugfixes. At the moment, there are no further maintenance releases planned
+for the Spring Tools 4.x line.&lt;/p&gt;
+&lt;p&gt;Detailed changes can be found in the release notes: &lt;a href=&quot;https://github.com/spring-projects/spring-tools/releases/tag/4.32.1.RELEASE&quot;&gt;https://github.com/spring-projects/spring-tools/releases/tag/4.32.1.RELEASE&lt;/a&gt;&lt;/p&gt;
+&lt;h4 id=&quot;downloads&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#downloads&quot; aria-label=&quot;downloads permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;downloads&lt;/h4&gt;
+&lt;p&gt;To download the distribution for Eclipse and find links to the marketplace entries for Visual Studio Code and Theia, please go visit:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Spring Tools: &lt;a href=&quot;https://spring.io/tools/&quot;&gt;https://spring.io/tools/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Next up is the first release of the Spring Tools 5 generation, currently scheduled for late November 2025.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[This Week in Spring - October 28th, 2025]]></title><link>https://spring.io/blog/2025/10/28/this-week-in-spring-october-28th-2025</link><guid isPermaLink="true">https://spring.io/blog/2025/10/28/this-week-in-spring-october-28th-2025</guid><dc:creator><![CDATA[joshlong]]></dc:creator><pubDate>Tue, 28 Oct 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;Hi, Spring fans! Welcome to another installment of &lt;em&gt;This Week in Spring&lt;/em&gt;! It&apos;s a wonderful tuesday here in my home town of San Francisco as I write this from my condo&apos;s balcony, fresh off more than three weeks on the road.&lt;/p&gt;
+&lt;p&gt;By the time we&apos;ll speak again in a week, Halloween will have come and gone. Are you all ready for Halloween? What&apos;re you gonna dress as? I always go as PHP code. The horror!&lt;/p&gt;
+&lt;p&gt;The excitement is &lt;em&gt;building&lt;/em&gt; for Spring Boot 4 and Spring Framework 7, both of which are scheduled to be released in November of 2025. So fun! There&apos;s a &lt;em&gt;ton&lt;/em&gt; of good stuff to look at this week, so let&apos;s dive into it!&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/28/modularizing-spring-boot&quot;&gt;Modularizing Spring Boot&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/28/spring-tools-4-32-1-released&quot;&gt;Spring Tools 4.32.1 released&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/27/spring-ai-anthropic-prompt-caching-blog&quot;&gt;Prompt Caching Support in Spring AI with Anthropic Claude&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/27/spring-modulith-2-0-rc1-1-4-4-and-1-3-10-released&quot;&gt;Spring Modulith 2.0 RC1, 1.4.4, and 1.3.0 released&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/24/spring-shell-4-0-0-m1-released&quot;&gt;Spring Shell 4.0.0 M1 is available&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;in last week&apos;s installment I talked to MCP, reactor, and Spring team  legend &lt;a href=&quot;https://spring.io/blog/2025/10/23/a-bootiful-podcast-dariusz-j%C4%99drzejczyk&quot;&gt;engineer Dariusz J?drzejczyk&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/23/spring-boot-3-4-11-available-now&quot;&gt;Spring Boot 3.4.11 available now&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/23/spring-boot-3-5-7-available-now&quot;&gt;Spring Boot 3.5.7 is available now&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/23/spring-boot-4-0-0-RC1-available-now&quot;&gt;Spring Boot 4.0.0 RC1 available now&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/22/spring-batch-6-0-0-rc1-released&quot;&gt;Spring Batch 6.0.0 RC1 is available now&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/22/spring-integration-7-0-0-RC1-released&quot;&gt;Spring Integration 7.0 RC1&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/22/spring-amqp-4-0-0-rc1-available&quot;&gt;Spring AMQP 4.0 RC1&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/22/spring-for-apache-pulsar-1-2-11-and-2-0-0-RC1-are-now-available&quot;&gt;Spring for Apache Pulsar 1.2.11 and 2.0.0 RC1 are now available&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/22/spring-integration-aws-eol&quot;&gt;New Home for Spring Integration AWS&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;I love this new support &lt;a href=&quot;https://spring.io/blog/2025/10/21/multi-factor-authentication-in-spring-security-7&quot;&gt;for multi-factor authentication in Spring Security 7&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/21/spring-authorization-server-1-5-3-and-1-4-6-available-now&quot;&gt;Spring Authorization Server 1.5.3 and 1.4.6 available now&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/21/spring-for-graphql-1-4-3-released&quot;&gt;Spring for GraphQL 1.4.3 released&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/21/spring-for-graphql-2-0-0-rc1-released&quot;&gt;Spring for GraphQL 2.0.0 RC1&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/21/spring-kafka-4&quot;&gt;Spring for Apache Kafka 4.0.0 RC1 is available now&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/21/spring-ws-4-0-16-available-now&quot;&gt;Spring Web Services 4.0.16 is available now&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/21/spring-ws-4-1-2-available-now&quot;&gt;Spring Web Services 4.0.12 is available now&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://spring.io/blog/2025/10/21/spring-ws-5-0-0-RC1-available-now&quot;&gt;Spring Web Services 5.0.0 RC1 is available now&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content:encoded></item><item><title><![CDATA[Prompt Caching Support in Spring AI with Anthropic Claude]]></title><link>https://spring.io/blog/2025/10/27/spring-ai-anthropic-prompt-caching-blog</link><guid isPermaLink="true">https://spring.io/blog/2025/10/27/spring-ai-anthropic-prompt-caching-blog</guid><dc:creator><![CDATA[sobychacko]]></dc:creator><pubDate>Mon, 27 Oct 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;Large language model API costs can accumulate quickly when applications repeatedly send the same prompt content. A typical scenario: you&apos;re building a document analyzer that includes a 3,000-token document in every request. Five questions about that document means processing 15,000 tokens of identical content at full price.&lt;/p&gt;
+&lt;p&gt;Anthropic&apos;s prompt caching addresses this by allowing you to reuse previously processed prompt segments. Spring AI provides comprehensive support through strategic caching patterns that handle cache breakpoint placement and management automatically.&lt;/p&gt;
+&lt;p&gt;In this blog post, we explain how prompt caching works, when to use it, and how Spring AI simplifies its implementation for you.&lt;/p&gt;
+&lt;h2 id=&quot;understanding-prompt-caching&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#understanding-prompt-caching&quot; aria-label=&quot;understanding prompt caching permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Understanding Prompt Caching&lt;/h2&gt;
+&lt;p&gt;Prompt caching allows you to mark portions of your prompt for reuse across multiple API requests. When you enable it, Anthropic caches the specified content and charges reduced rates for cached segments in subsequent requests.&lt;/p&gt;
+&lt;h3 id=&quot;how-it-works&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#how-it-works&quot; aria-label=&quot;how it works permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;How It Works&lt;/h3&gt;
+&lt;p&gt;The cache operates on exact prefix matching. Consider this sequence:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Request 1: [System Prompt] + [User: &quot;Question 1&quot;]
+           ?? Cached ???
+
+Request 2: [System Prompt] + [User: &quot;Question 2&quot;]
+           ?? Cache Hit ??    (Only this part incurs full cost)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The system generates cache keys using cryptographic hashes of prompt content up to designated cache control points. Only requests with identical content achieve cache hits—even a single character change creates a new cache entry.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Request 1: &quot;You are a helpful assistant.&quot;    ? Cache created
+Request 2: &quot;You are a helpful assistant.&quot;    ? Cache hit
+Request 3: &quot;You are a helpful assistant &quot;    ? Cache miss (extra space)
+Request 4: &quot;You are a Helpful assistant.&quot;    ? Cache miss (capitalization)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;On a cache miss, the system processes content at standard rates and creates a new cache entry. This is why maintaining consistent prompt templates becomes important for effective caching.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Performance Impact:&lt;/strong&gt; Beyond cost savings, Anthropic reports latency reductions of up to 85% for long prompts. In their &lt;a href=&quot;https://www.anthropic.com/news/prompt-caching&quot;&gt;announcement&lt;/a&gt;, a 100K-token book example showed response time dropping from 11.5s to 2.4s with caching enabled. Note that actual latency improvements depend on how much content you&apos;re caching and your cache hit rate.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Cache Lifecycle:&lt;/strong&gt; Entries refresh on each use within the TTL window (5 minutes default, 1 hour optional). After TTL expiration, the next request creates a new cache entry.&lt;/p&gt;
+&lt;h3 id=&quot;cost-structure&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#cost-structure&quot; aria-label=&quot;cost structure permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Cost Structure&lt;/h3&gt;
+&lt;p&gt;Pricing varies significantly by model tier:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Model&lt;/th&gt;
+&lt;th&gt;Base Input&lt;/th&gt;
+&lt;th&gt;Cache Write&lt;/th&gt;
+&lt;th&gt;Cache Read&lt;/th&gt;
+&lt;th&gt;Savings&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Claude 3.5 Sonnet&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;$3/MTok&lt;/td&gt;
+&lt;td&gt;$3.75/MTok (+25%)&lt;/td&gt;
+&lt;td&gt;$0.30/MTok&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;90%&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Claude 3 Opus&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;$15/MTok&lt;/td&gt;
+&lt;td&gt;$18.75/MTok (+25%)&lt;/td&gt;
+&lt;td&gt;$1.50/MTok&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;90%&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Claude 3 Haiku&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;$0.25/MTok&lt;/td&gt;
+&lt;td&gt;$0.30/MTok (+25%)&lt;/td&gt;
+&lt;td&gt;$0.03/MTok&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;90%&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;em&gt;All code examples in this blog use Claude 3.5 Sonnet pricing unless otherwise specified.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Example calculation (Claude 3.5 Sonnet, 5,000 tokens):&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;First request: 5,000 tokens × $3.75/M = &lt;strong&gt;$0.01875&lt;/strong&gt; (cache write)&lt;/li&gt;
+&lt;li&gt;Subsequent requests: 5,000 tokens × $0.30/M = &lt;strong&gt;$0.00150&lt;/strong&gt; (cache read)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Savings:&lt;/strong&gt; 90% reduction on cached content&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Breakeven:&lt;/strong&gt; 2nd request (the 25% write premium is recovered immediately)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;requirements-and-limitations&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#requirements-and-limitations&quot; aria-label=&quot;requirements and limitations permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Requirements and Limitations&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;Minimum token thresholds vary by model:&lt;/strong&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Model&lt;/th&gt;
+&lt;th&gt;Minimum Cacheable Tokens&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Claude 3.5 Sonnet, Claude 3 Opus&lt;/td&gt;
+&lt;td&gt;1,024&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Claude 3.5 Haiku&lt;/td&gt;
+&lt;td&gt;2,048&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Claude 3 Haiku&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;4,096&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Prompts below these thresholds cannot be cached, even when you mark them with cache control directives. Note that Claude 3 Haiku requires significantly more tokens (4,096) compared to other models.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Additional constraints:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Maximum 4 cache breakpoints per request&lt;/li&gt;
+&lt;li&gt;Cache TTL: 5 minutes default, 1 hour optional (at higher write cost)&lt;/li&gt;
+&lt;li&gt;Cache refreshes on each use within TTL window&lt;/li&gt;
+&lt;li&gt;Cache entries become available after the first response begins (not available for concurrent parallel requests)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&quot;cache-hierarchy-and-cascade-invalidation&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#cache-hierarchy-and-cascade-invalidation&quot; aria-label=&quot;cache hierarchy and cascade invalidation permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Cache Hierarchy and Cascade Invalidation&lt;/h2&gt;
+&lt;p&gt;Anthropic processes request components in a specific order, and this order determines how cache invalidation works.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;???????????????????????????????????????????
+?  Request Processing Order:              ?
+?                                         ?
+?  1. Tools                               ?
+?     ?                                   ?
+?  2. System Message                      ?
+?     ?                                   ?
+?  3. Message History                     ?
+???????????????????????????????????????????
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Changes cascade downward through this hierarchy:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;????????????????????????????????????????????????????????
+?  Cascade Invalidation:                               ?
+?                                                      ?
+?  Change Tools    ? Invalidates: Tools, System, Msgs  ?
+?  Change System   ? Invalidates: System, Msgs         ?
+?  Change Messages ? Invalidates: Msgs only            ?
+????????????????????????????????????????????????????????
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Understanding this behavior is essential when choosing your caching strategy. Changes to components higher in the hierarchy invalidate all downstream caches, which directly impacts your cache hit rates.&lt;/p&gt;
+&lt;h2 id=&quot;spring-ai-cache-strategies&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#spring-ai-cache-strategies&quot; aria-label=&quot;spring ai cache strategies permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Spring AI Cache Strategies&lt;/h2&gt;
+&lt;p&gt;Rather than requiring you to manually place cache breakpoints (which can be error-prone and tedious), Spring AI provides five strategic patterns through the &lt;code&gt;AnthropicCacheStrategy&lt;/code&gt; enum. Each strategy handles cache control directive placement automatically while respecting Anthropic&apos;s 4-breakpoint limit.&lt;/p&gt;
+&lt;h3 id=&quot;strategy-overview&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#strategy-overview&quot; aria-label=&quot;strategy overview permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Strategy Overview&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Strategy&lt;/th&gt;
+&lt;th&gt;Breakpoints&lt;/th&gt;
+&lt;th&gt;Cached Content&lt;/th&gt;
+&lt;th&gt;Typical Use Case&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;NONE&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;0&lt;/td&gt;
+&lt;td&gt;Nothing&lt;/td&gt;
+&lt;td&gt;One-off requests, testing&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;SYSTEM_ONLY&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;1&lt;/td&gt;
+&lt;td&gt;System message&lt;/td&gt;
+&lt;td&gt;Stable system prompts, &amp;#x3C;20 tools&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;TOOLS_ONLY&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;1&lt;/td&gt;
+&lt;td&gt;Tool definitions&lt;/td&gt;
+&lt;td&gt;Large tools, dynamic system prompts&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;SYSTEM_AND_TOOLS&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;Tools + System&lt;/td&gt;
+&lt;td&gt;20+ tools, both stable&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;CONVERSATION_HISTORY&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;1-4&lt;/td&gt;
+&lt;td&gt;Full conversation&lt;/td&gt;
+&lt;td&gt;Multi-turn conversations&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Let&apos;s take a look at each strategy with practical examples.&lt;/p&gt;
+&lt;h2 id=&quot;system_only-strategy&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#system_only-strategy&quot; aria-label=&quot;system_only strategy permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;SYSTEM_ONLY Strategy&lt;/h2&gt;
+&lt;p&gt;This strategy caches the system message content. Since tools appear before the system message in Anthropic&apos;s request hierarchy (Tools ? System ? Messages), they automatically become part of the cache prefix when you place a cache breakpoint on the system message.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Important:&lt;/strong&gt; Changing any tool definition will invalidate the system cache due to the cache hierarchy.&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-java&quot;&gt;String systemPrompt = &quot;&quot;&quot;
+    You are an expert software architect specializing in distributed systems.
+    You have deep knowledge of microservices, event-driven architecture, and cloud-native patterns.
+    When analyzing systems, consider scalability, resilience, and maintainability.
+    [... additional context ...]
+    &quot;&quot;&quot;;
+
+ChatResponse response = chatModel.call(
+    new Prompt(
+        List.of(
+            new SystemMessage(systemPrompt),
+            new UserMessage(&quot;What is microservices architecture?&quot;)
+        ),
+        AnthropicChatOptions.builder()
+            .model(AnthropicApi.ChatModel.CLAUDE_3_5_SONNET)
+            .cacheOptions(AnthropicCacheOptions.builder()
+                .strategy(AnthropicCacheStrategy.SYSTEM_ONLY)
+                .build())
+            .maxTokens(500)
+            .build()
+    )
+);
+
+// Access cache metrics
+AnthropicApi.Usage usage = (AnthropicApi.Usage) response.getMetadata()
+		.getUsage().getNativeUsage();
+
+if (usage != null) {
+	System.out.println(&quot;Cache creation: &quot; + usage.cacheCreationInputTokens());
+	System.out.println(&quot;Cache read: &quot; + usage.cacheReadInputTokens());
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;On the first request, &lt;code&gt;cacheCreationInputTokens&lt;/code&gt; will be greater than zero and &lt;code&gt;cacheReadInputTokens&lt;/code&gt; will be zero. Subsequent requests with the same system prompt will show zero for &lt;code&gt;cacheCreationInputTokens&lt;/code&gt; and a positive value for &lt;code&gt;cacheReadInputTokens&lt;/code&gt;. This is how you can verify that caching is working as expected in your application.&lt;/p&gt;
+&lt;p&gt;Use this strategy when your system prompt is large (meeting the minimum token threshold) and stable, but user questions vary.&lt;/p&gt;
+&lt;h2 id=&quot;tools_only-strategy&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#tools_only-strategy&quot; aria-label=&quot;tools_only strategy permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;TOOLS_ONLY Strategy&lt;/h2&gt;
+&lt;p&gt;This strategy caches tool definitions while processing the system message fresh on each request. The use case becomes clear in multi-tenant scenarios where tools are shared but system prompts need customization.&lt;/p&gt;
+&lt;p&gt;Consider a SaaS application serving multiple organizations:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-java&quot;&gt;@Service
+public class MultiTenantAIService {
+
+    private final List&amp;#x3C;FunctionCallback&gt; sharedTools = List.of(
+        weatherTool,       // 500 tokens
+        calendarTool,      // 800 tokens
+        emailTool,         // 700 tokens
+        analyticsTool,     // 600 tokens
+        reportingTool,     // 900 tokens
+        // ... 15 more tools totaling 5,000+ tokens
+    );
+
+    public String handleRequest(String tenantId, String userQuery) {
+        TenantConfig config = tenantRepository.findById(tenantId);
+
+        // Each tenant requires a unique system prompt
+        String systemPrompt = &quot;&quot;&quot;
+            You are %s&apos;s AI assistant.
+            Company values: [custom data]
+            Brand voice: [custom data]
+            Compliance requirements: [custom data]
+            &quot;&quot;&quot;;
+
+        ChatResponse response = chatModel.call(
+            new Prompt(
+                List.of(
+                    new SystemMessage(systemPrompt),
+                    new UserMessage(userQuery)
+                ),
+                AnthropicChatOptions.builder()
+                    .model(AnthropicApi.ChatModel.CLAUDE_3_5_SONNET)
+                    .cacheOptions(AnthropicCacheOptions.builder()
+                        .strategy(AnthropicCacheStrategy.TOOLS_ONLY)
+                        .build())
+                    .toolCallbacks(sharedTools)
+                    .maxTokens(800)
+                    .build()
+            )
+        );
+
+        return response.getResult().getOutput().getText();
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Here&apos;s what happens:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;First request (any tenant)&lt;/strong&gt;: Tools cached at 1.25x cost&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;All subsequent requests (all tenants)&lt;/strong&gt;: Tools read from cache at 0.1x cost&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Each tenant&apos;s system prompt&lt;/strong&gt;: Processed fresh at 1.0x cost (by design)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;All tenants share the same cached tool definitions, while each receives their customized system prompt. For the 5,000-token tool set, this means paying &lt;code&gt;$0.01875&lt;/code&gt; once to create the cache, then &lt;code&gt;$0.0015&lt;/code&gt; per request for cache reads—regardless of which tenant is making the request.&lt;/p&gt;
+&lt;h2 id=&quot;system_and_tools-strategy&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#system_and_tools-strategy&quot; aria-label=&quot;system_and_tools strategy permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;SYSTEM_AND_TOOLS Strategy&lt;/h2&gt;
+&lt;p&gt;This strategy creates two independent cache breakpoints: one for tools (breakpoint 1) and one for the system message (breakpoint 2). This separation matters when you have more than 20 tools or when you need deterministic caching of both components.&lt;/p&gt;
+&lt;p&gt;The key advantage: changing the system message does not invalidate the tool cache.&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-java&quot;&gt;ChatResponse response = chatModel.call(
+    new Prompt(
+        List.of(
+            new SystemMessage(systemPrompt),
+            new UserMessage(userQuery)
+        ),
+        AnthropicChatOptions.builder()
+            .model(AnthropicApi.ChatModel.CLAUDE_3_5_SONNET)
+            .cacheOptions(AnthropicCacheOptions.builder()
+                .strategy(AnthropicCacheStrategy.SYSTEM_AND_TOOLS)
+                .build())
+            .toolCallbacks(toolCallbacks)
+            .maxTokens(500)
+            .build()
+    )
+);
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The cache keys work as follows:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Breakpoint 1 (tools)&lt;/strong&gt;: &lt;code&gt;hash(tools)&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Breakpoint 2 (system)&lt;/strong&gt;: &lt;code&gt;hash(tools + system)&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Cascade Behavior:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;System changes only:&lt;/strong&gt; Tool cache (breakpoint 1) remains valid, system cache (breakpoint 2) invalidated&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tool changes:&lt;/strong&gt; Both caches invalidated&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This makes SYSTEM_AND_TOOLS ideal when your system prompt changes more frequently than your tools, allowing efficient reuse of the tool cache.&lt;/p&gt;
+&lt;h2 id=&quot;conversation_history-strategy&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#conversation_history-strategy&quot; aria-label=&quot;conversation_history strategy permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;CONVERSATION_HISTORY Strategy&lt;/h2&gt;
+&lt;p&gt;For multi-turn conversations, this strategy caches the entire conversation history incrementally. Spring AI places a cache breakpoint on the last user message in the conversation history. This is particularly useful when building conversational AI applications (such as chatbots, virtual assistants, and customer support systems).&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-java&quot;&gt;ChatClient chatClient = ChatClient.builder(chatModel)
+    .defaultSystem(&quot;You are a personalized career counselor with 20 years of experience...&quot;)
+    .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory)
+        .conversationId(conversationId)
+        .build())
+    .build();
+
+String response = chatClient.prompt()
+    .user(&quot;What career advice would you give me based on our conversation?&quot;)
+    .options(AnthropicChatOptions.builder()
+        .model(AnthropicApi.ChatModel.CLAUDE_3_5_SONNET)
+        .cacheOptions(AnthropicCacheOptions.builder()
+            .strategy(AnthropicCacheStrategy.CONVERSATION_HISTORY)
+            .build())
+        .maxTokens(500)
+        .build())
+    .call()
+    .content();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The cache grows incrementally as the conversation progresses:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Turn 1: Cache [U1]
+Turn 2: Reuse [U1], cache [U1 + A1 + U2]
+Turn 3: Reuse [U1 + A1 + U2], cache [U1 + A1 + U2 + A2 + U3]
+Turn 4: Reuse [U1 + A1 + U2 + A2 + U3], cache [full history + U4]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;By turn 10 in a conversation, you might have 20,000 tokens of history cached, paying just 10% of the normal cost for that context on each subsequent turn.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Critical Requirement: Tool and System Stability&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;When using &lt;code&gt;CONVERSATION_HISTORY&lt;/code&gt;, both tools and system prompts must remain stable throughout the conversation. Changes to either invalidate the entire conversation cache.&lt;/p&gt;
+&lt;h2 id=&quot;example-partnership-agreement-analysis&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#example-partnership-agreement-analysis&quot; aria-label=&quot;example partnership agreement analysis permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Example: Partnership Agreement Analysis&lt;/h2&gt;
+&lt;p&gt;Here&apos;s a complete example showing cache efficiency for multi-question document analysis:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-java&quot;&gt;@Service
+public class ContractAnalyzer {
+
+    private final AnthropicChatModel chatModel;
+    private final PdfExtractor pdfExtractor;
+
+    public AnalysisReport analyzeAgreement(String agreementPdf) {
+        // Extract text from PDF (typically 2,000-5,000 tokens)
+        String agreementText = pdfExtractor.extract(agreementPdf);
+
+        String systemPrompt = &quot;&quot;&quot;
+            You are an expert business analyst specializing in partnership agreements.
+            Analyze the following partnership agreement and provide insights about
+            collaboration terms, value propositions, and strategic opportunities.
+
+            AGREEMENT:
+            %s
+            &quot;&quot;&quot;.formatted(agreementText);
+
+        String[] questions = {
+            &quot;What are the key collaboration opportunities outlined in this agreement?&quot;,
+            &quot;Summarize the revenue sharing and financial arrangements.&quot;,
+            &quot;What intellectual property rights and licensing terms are defined?&quot;,
+            &quot;Identify the strategic value propositions for both parties.&quot;,
+            &quot;What are the performance milestones and success metrics?&quot;
+        };
+
+        AnalysisReport report = new AnalysisReport();
+
+        AnthropicChatOptions options = AnthropicChatOptions.builder()
+            .model(AnthropicApi.ChatModel.CLAUDE_3_5_SONNET)
+            .cacheOptions(AnthropicCacheOptions.builder()
+                .strategy(AnthropicCacheStrategy.SYSTEM_ONLY)
+                .messageTypeTtl(MessageType.SYSTEM, AnthropicCacheTtl.ONE_HOUR)
+                .build())
+            .maxTokens(1000)
+            .build();
+
+        for (int i = 0; i &amp;#x3C; questions.length; i++) {
+            ChatResponse response = chatModel.call(
+                new Prompt(
+                    List.of(
+                        new SystemMessage(systemPrompt),
+                        new UserMessage(questions[i])
+                    ),
+                    options
+                )
+            );
+
+            String answer = response.getResult().getOutput().getText();
+            report.addSection(questions[i], answer);
+
+            // Log cache performance
+            AnthropicApi.Usage usage = (AnthropicApi.Usage)
+                response.getMetadata().getUsage().getNativeUsage();
+
+            if (usage != null) {
+                if (i == 0) {
+                    logger.info(&quot;First question - Cache created: {} tokens&quot;,
+                        usage.cacheCreationInputTokens());
+                } else {
+                    logger.info(&quot;Question {} - Cache read: {} tokens&quot;,
+                        i + 1, usage.cacheReadInputTokens());
+                }
+            }
+        }
+
+        return report;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;With a 3,500-token system prompt (agreement + instructions) using Claude 3.5 Sonnet:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;First question&lt;/strong&gt;: 3,500 tokens × $3.75/M = $0.013 (cache write)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Questions 2-5&lt;/strong&gt;: 3,500 tokens × $0.30/M = $0.001 (cache read) each&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Total cached content cost&lt;/strong&gt;: $0.013 + (4 × $0.001) = $0.017&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Without caching&lt;/strong&gt;: 5 × (3,500 tokens × $3.00/M) = $0.053&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This represents a 68% cost reduction for the cached system prompt portion. The actual total savings will be lower when you factor in the user question tokens and output tokens (which are not cached), but the reduction becomes more significant with more questions or larger documents.&lt;/p&gt;
+&lt;h2 id=&quot;getting-started&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#getting-started&quot; aria-label=&quot;getting started permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Getting Started&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Note:&lt;/strong&gt; Prompt caching support is available in Spring AI &lt;code&gt;1.1.0&lt;/code&gt; and later. Try it with the latest &lt;code&gt;1.1.0-SNAPSHOT&lt;/code&gt; version.&lt;/p&gt;
+&lt;p&gt;Add the Spring AI Anthropic starter to your project:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-xml&quot;&gt;&amp;#x3C;dependency&gt;
+    &amp;#x3C;groupId&gt;org.springframework.ai&amp;#x3C;/groupId&gt;
+    &amp;#x3C;artifactId&gt;spring-ai-anthropic-spring-boot-starter&amp;#x3C;/artifactId&gt;
+&amp;#x3C;/dependency&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Configure your API key in your application properties:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-properties&quot;&gt;spring.ai.anthropic.api-key=${ANTHROPIC_API_KEY}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Inject and use in your application:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-java&quot;&gt;@Autowired
+private AnthropicChatModel chatModel;
+
+// Start using caching strategies immediately
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&quot;advanced-configuration-options&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#advanced-configuration-options&quot; aria-label=&quot;advanced configuration options permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Advanced Configuration Options&lt;/h2&gt;
+&lt;h3 id=&quot;extended-cache-ttl&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#extended-cache-ttl&quot; aria-label=&quot;extended cache ttl permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Extended Cache TTL&lt;/h3&gt;
+&lt;p&gt;The default cache TTL is 5 minutes. For scenarios where requests arrive less frequently, you can configure a 1-hour cache:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-java&quot;&gt;AnthropicChatOptions options = AnthropicChatOptions.builder()
+    .model(AnthropicApi.ChatModel.CLAUDE_3_5_SONNET)
+    .cacheOptions(AnthropicCacheOptions.builder()
+        .strategy(AnthropicCacheStrategy.SYSTEM_ONLY)
+        .messageTypeTtl(MessageType.SYSTEM, AnthropicCacheTtl.ONE_HOUR)
+        .build())
+    .maxTokens(500)
+    .build();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Spring AI automatically adds the required beta header (&lt;code&gt;anthropic-beta: extended-cache-ttl-2025-04-11&lt;/code&gt;) when you configure 1-hour TTL.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;When to use each TTL:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;5 minutes (default):&lt;/strong&gt; Real-time conversations, frequently updated content&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;1 hour:&lt;/strong&gt; Infrequent requests (&gt;5 min apart), stable reference materials, lower traffic&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Trade-off:&lt;/strong&gt; 1-hour cache writes cost &lt;strong&gt;2x&lt;/strong&gt; vs 5-minute writes ($6/M vs $3.75/M for Claude 3.5 Sonnet). Evaluate your application&apos;s request patterns and stability requirements to determine which TTL makes sense.&lt;/p&gt;
+&lt;h3 id=&quot;content-length-filtering&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#content-length-filtering&quot; aria-label=&quot;content length filtering permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Content Length Filtering&lt;/h3&gt;
+&lt;p&gt;You can set minimum content lengths per message type to optimize breakpoint usage:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-java&quot;&gt;AnthropicCacheOptions cache = AnthropicCacheOptions.builder()
+    .strategy(AnthropicCacheStrategy.CONVERSATION_HISTORY)
+    .messageTypeMinContentLength(MessageType.SYSTEM, 1024)
+    .messageTypeMinContentLength(MessageType.USER, 512)
+    .messageTypeMinContentLength(MessageType.ASSISTANT, 512)
+    .build();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;For precise token counting, you can provide a custom length function:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-java&quot;&gt;AnthropicCacheOptions cache = AnthropicCacheOptions.builder()
+    .strategy(AnthropicCacheStrategy.CONVERSATION_HISTORY)
+    .contentLengthFunction(text -&gt; customTokenCounter.count(text))
+    .build();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;By default, Spring AI uses string length as a proxy for token count, but for production scenarios, you might want to consider injecting a proper token counter.&lt;/p&gt;
+&lt;h2 id=&quot;implementation-details&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#implementation-details&quot; aria-label=&quot;implementation details permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Implementation Details&lt;/h2&gt;
+&lt;p&gt;For those interested in internals, here&apos;s how Spring AI handles cache management:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;???????????????????????????????????????????????????????????
+?  Request Flow:                                          ?
+?                                                         ?
+?  Application                                            ?
+?      ?                                                  ?
+?  AnthropicChatModel                                     ?
+?      ?                                                  ?
+?  CacheEligibilityResolver                               ?
+?    (created from strategy)                              ?
+?      ?                                                  ?
+?  For each component:                                    ?
+?    - Check strategy eligibility                         ?
+?    - Verify minimum content length                      ?
+?    - Confirm breakpoint availability (&amp;#x3C;4)               ?
+?    - Add cache_control if eligible                      ?
+?      ?                                                  ?
+?  Build request with cache markers                       ?
+?      ?                                                  ?
+?  Add beta headers if needed (1h TTL)                    ?
+?      ?                                                  ?
+?  Anthropic API                                          ?
+?      ?                                                  ?
+?  Response with cache metrics                            ?
+???????????????????????????????????????????????????????????
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;CacheEligibilityResolver&lt;/code&gt; determines whether each message or tool qualifies for caching based on the chosen strategy, message type eligibility, content length requirements, and available breakpoints. The &lt;code&gt;CacheBreakpointTracker&lt;/code&gt; enforces Anthropic&apos;s 4-breakpoint limit with thread-safe tracking per request.&lt;/p&gt;
+&lt;p&gt;For &lt;code&gt;CONVERSATION_HISTORY&lt;/code&gt;, Spring AI uses aggregate eligibility checking—it considers the combined content of all message types (user, assistant, tool) within the last ~20 content blocks when determining cache eligibility. This prevents short user questions (such as &quot;Tell me more&quot;) from blocking cache creation when there are substantial assistant responses in the conversation history.&lt;/p&gt;
+&lt;h2 id=&quot;practical-considerations&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#practical-considerations&quot; aria-label=&quot;practical considerations permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Practical Considerations&lt;/h2&gt;
+&lt;h3 id=&quot;when-caching-doesnt-help&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#when-caching-doesnt-help&quot; aria-label=&quot;when caching doesnt help permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;When Caching Doesn&apos;t Help&lt;/h3&gt;
+&lt;p&gt;Avoid caching when:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Content changes frequently (cache miss rate &gt;50%)&lt;/li&gt;
+&lt;li&gt;Prompts are below minimum token thresholds for your model&lt;/li&gt;
+&lt;li&gt;Making one-off requests with no reuse patterns&lt;/li&gt;
+&lt;li&gt;Tools or system prompts change more often than content is reused&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;strategy-anti-patterns&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#strategy-anti-patterns&quot; aria-label=&quot;strategy anti patterns permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Strategy Anti-Patterns&lt;/h3&gt;
+&lt;p&gt;Avoid these common mistakes:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Don&apos;t use SYSTEM_ONLY&lt;/strong&gt; if your system prompt changes frequently—you&apos;ll pay cache write costs without getting cache hits&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Don&apos;t use TOOLS_ONLY&lt;/strong&gt; if your tools change frequently—you&apos;ll pay cache write costs without getting cache hits. Note that SYSTEM_ONLY won&apos;t help either when tools change frequently, since tool changes invalidate the system cache&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Don&apos;t use CONVERSATION_HISTORY&lt;/strong&gt; if you can&apos;t guarantee tool and system stability—changes invalidate the entire conversation cache&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Don&apos;t use SYSTEM_AND_TOOLS&lt;/strong&gt; if you only have a few small tools (&amp;#x3C;20)—SYSTEM_ONLY&apos;s implicit caching is sufficient&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;streaming-support&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#streaming-support&quot; aria-label=&quot;streaming support permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Streaming Support&lt;/h3&gt;
+&lt;p&gt;Caching works seamlessly with both streaming and non-streaming responses. Cache metrics appear in the final response chunk when using streaming. There is no difference in cache behavior between the two modes.&lt;/p&gt;
+&lt;h2 id=&quot;conclusion&quot; style=&quot;position:relative;&quot;&gt;&lt;a href=&quot;#conclusion&quot; aria-label=&quot;conclusion permalink&quot; class=&quot;anchor before&quot;&gt;&lt;svg aria-hidden=&quot;true&quot; focusable=&quot;false&quot; height=&quot;16&quot; version=&quot;1.1&quot; viewBox=&quot;0 0 16 16&quot; width=&quot;16&quot;&gt;&lt;path fill-rule=&quot;evenodd&quot; d=&quot;M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/a&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;Prompt caching in Anthropic Claude provides significant cost and latency benefits for applications with reusable prompt content. Spring AI&apos;s strategic approach simplifies implementation by automatically handling cache breakpoint placement, breakpoint limits, and TTL configuration.&lt;/p&gt;
+&lt;p&gt;The five caching strategies cover common usage patterns, from simple system prompt caching to complex multi-turn conversations. For most applications, selecting the appropriate strategy based on content stability patterns is sufficient—Spring AI handles the implementation details.&lt;/p&gt;
+&lt;p&gt;For additional information, see the &lt;a href=&quot;https://docs.spring.io/spring-ai/reference/api/chat/anthropic-chat.html#_prompt_caching&quot;&gt;Spring AI Anthropic documentation&lt;/a&gt; and &lt;a href=&quot;https://docs.claude.com/en/docs/build-with-claude/prompt-caching&quot;&gt;Anthropic&apos;s prompt caching guide&lt;/a&gt;.&lt;/p&gt;</content:encoded></item></channel></rss>

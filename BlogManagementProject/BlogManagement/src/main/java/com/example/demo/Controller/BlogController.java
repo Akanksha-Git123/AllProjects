@@ -1,0 +1,61 @@
+package com.example.demo.Controller;
+
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import com.example.demo.model.Blog;
+import com.example.demo.repository.BlogRepository;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/blogs")
+public class BlogController {
+    @Autowired
+    private BlogRepository blogRepo;
+
+    @GetMapping("/my")
+    public List<Blog> getMyBlogs() {
+        return blogRepo.findAll(); // for testing, shows all blogs
+    }
+
+    @PostMapping
+    public Blog createBlog(@RequestBody Blog blog) {
+        return blogRepo.save(blog);
+    }
+
+    // ✅ CHANGED THIS TO SHOW ALL BLOGS
+    @GetMapping
+    public List<Blog> getAllBlogs() {
+        return blogRepo.findAll();
+    }
+
+    @GetMapping("/user/{userId}")
+    public List<Blog> getUserBlogs(@PathVariable Long userId) {
+        return blogRepo.findByUserId(userId);
+    }
+
+    @GetMapping("/search")
+    public List<Blog> searchBlogs(@RequestParam String keyword) {
+        return blogRepo.findByTitleContainingIgnoreCase(keyword);
+    }
+
+    @PutMapping("/{id}")
+    public Blog updateBlog(@PathVariable Long id, @RequestBody Blog blogDetails) {
+        Blog blog = blogRepo.findById(id).orElse(null);
+        if(blog != null) {
+            blog.setTitle(blogDetails.getTitle());
+            blog.setContent(blogDetails.getContent());
+            blog.setPublished(blogDetails.isPublished());
+            blog.setCategory(blogDetails.getCategory());
+            return blogRepo.save(blog);
+        }
+        return null;
+    }
+
+    @DeleteMapping("/{id}")
+    public String deleteBlog(@PathVariable Long id) {
+        blogRepo.deleteById(id);
+        return "Deleted successfully";
+    }
+}

@@ -1,0 +1,48 @@
+package com.example.demo.Controller;
+
+import com.example.demo.model.Category;
+import com.example.demo.service.CategoryService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/categories")
+public class CategoryController {
+
+    @Autowired
+    private CategoryService categoryService;
+
+    // Add new category
+    @PostMapping
+    public Category createCategory(@RequestBody Category category) {
+        // You can set the user here if you have a logged-in user
+        return categoryService.saveCategory(category);
+    }
+
+    // Get all categories (for Show Categories and dropdown)
+    @GetMapping
+    public List<Category> getAllCategories() {
+        return categoryService.getAllCategories();
+    }
+
+    // Get categories by user (optional)
+    @GetMapping("/user/{userId}")
+    public List<Category> getUserCategories(@PathVariable Long userId) {
+        return categoryService.getCategoriesByUserId(userId);
+    }
+
+    // Update category
+    @PutMapping("/{id}")
+    public Category updateCategory(@PathVariable Long id, @RequestBody Category category) {
+        return categoryService.updateCategory(id, category);
+    }
+
+    // Delete category
+    @DeleteMapping("/{id}")
+    public String deleteCategory(@PathVariable Long id) {
+        categoryService.deleteCategory(id);
+        return "Deleted successfully";
+    }
+}

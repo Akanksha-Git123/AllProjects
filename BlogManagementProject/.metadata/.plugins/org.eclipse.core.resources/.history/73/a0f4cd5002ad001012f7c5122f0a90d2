@@ -1,0 +1,26 @@
+package com.example.demo.Controller;
+
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import com.example.demo.model.Category;
+import com.example.demo.repository.CategoryRepository;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/categories")
+public class CategoryController {
+    @Autowired
+    private CategoryRepository categoryRepo;
+
+    @PostMapping
+    public Category createCategory(@RequestBody Category category) {
+        return categoryRepo.save(category);
+    }
+
+    @GetMapping("/user/{userId}")
+    public List<Category> getUserCategories(@PathVariable Long userId) {
+        return categoryRepo.findByUserId(userId);
+    }
+}
