@@ -1,0 +1,5 @@
+package com.shopappln.com.dto;
+
+public class OrderHistoryResponse {
+
+}

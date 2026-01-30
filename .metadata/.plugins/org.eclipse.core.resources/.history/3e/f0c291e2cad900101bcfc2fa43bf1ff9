@@ -1,0 +1,21 @@
+package com.shopappln.com.dto;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+public class OrderHistoryResponse {
+
+    private Long id;
+    private Double totalAmount;
+    private String status;
+    private LocalDateTime createdAt;
+    private List<Item> items;
+
+    public static class Item {
+        public String productName;
+        public Integer quantity;
+        public Double price;
+    }
+
+    // getters & setters
+}

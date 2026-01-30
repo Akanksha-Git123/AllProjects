@@ -1,0 +1,5 @@
+package com.shopappln.com.controller;
+
+public class AuthController {
+
+}

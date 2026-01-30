@@ -1,0 +1,32 @@
+package com.shopappln.com.service;
+
+import com.shopappln.com.dto.LoginRequest;
+import com.shopappln.com.dto.RegisterRequest;
+import com.shopappln.com.entity.User;
+import com.shopappln.com.repository.UserRepository;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserService {
+
+    private final UserRepository repo;
+
+    public UserService(UserRepository repo) {
+        this.repo = repo;
+    }
+
+    public User register(RegisterRequest request) {
+        User user = new User(
+                request.getFullName(),
+                request.getEmail(),
+                request.getPassword()
+        );
+        return repo.save(user);
+    }
+
+    public User login(LoginRequest request) {
+        return repo.findByEmail(request.getEmail())
+                .filter(u -> u.getPassword().equals(request.getPassword()))
+                .orElse(null);
+    }
+}

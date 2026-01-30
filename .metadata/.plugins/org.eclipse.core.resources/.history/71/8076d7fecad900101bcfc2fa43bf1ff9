@@ -1,0 +1,52 @@
+package com.shopappln.com.service;
+
+import com.shopappln.com.dto.CreateOrderRequest;
+import com.shopappln.com.entity.*;
+import com.shopappln.com.repository.OrderRepository;
+import com.shopappln.com.repository.ProductRepository;
+import com.shopappln.com.repository.UserRepository;
+import org.springframework.stereotype.Service;
+
+@Service
+public class OrderService {
+
+    private final OrderRepository orderRepo;
+    private final UserRepository userRepo;
+    private final ProductRepository productRepo;
+
+    public OrderService(OrderRepository orderRepo,
+                        UserRepository userRepo,
+                        ProductRepository productRepo) {
+        this.orderRepo = orderRepo;
+        this.userRepo = userRepo;
+        this.productRepo = productRepo;
+    }
+
+    public Order createOrder(CreateOrderRequest request) {
+        User user = userRepo.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found: " + request.getUserId()));
+
+        Order order = new Order();
+        order.setUser(user);
+
+        double total = 0.0;
+
+        for (CreateOrderRequest.Item itemReq : request.getItems()) {
+            Product product = productRepo.findById(itemReq.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + itemReq.getProductId()));
+
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProduct(product);
+            item.setQuantity(itemReq.getQuantity());
+            item.setPrice(product.getPrice());
+
+            total += product.getPrice() * itemReq.getQuantity();
+            order.getItems().add(item);
+        }
+
+        order.setTotalAmount(total);
+
+        return orderRepo.save(order);
+    }
+}

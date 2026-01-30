@@ -1,0 +1,36 @@
+package com.shopappln.com.controller;
+
+import com.shopappln.com.dto.AuthResponse;
+import com.shopappln.com.dto.LoginRequest;
+import com.shopappln.com.dto.RegisterRequest;
+import com.shopappln.com.entity.User;
+import com.shopappln.com.service.UserService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+
+    private final UserService service;
+
+    public AuthController(UserService service) {
+        this.service = service;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest req) {
+        User saved = service.register(req);
+        return ResponseEntity.ok(new AuthResponse(null, "Registration successful"));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest req) {
+        User user = service.login(req);
+        if (user == null) {
+            return ResponseEntity.status(401)
+                    .body(new AuthResponse(null, "Invalid email or password"));
+        }
+        return ResponseEntity.ok(new AuthResponse("dummy-token", "Login successful"));
+    }
+}

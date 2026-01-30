@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename compilation unit &apos;com.shopappln.com.exception.GlobalException.java&apos; to &apos;GlobalExceptionHandler.java&apos;&#x0D;&#x0A;- Original project: &apos;shopapp&apos;&#x0D;&#x0A;- Original element: &apos;com.shopappln.com.exception.GlobalException.java&apos;&#x0D;&#x0A;- Renamed element: &apos;com.shopappln.com.exception.GlobalExceptionHandler.java&apos;" description="Rename compilation unit &apos;GlobalException.java&apos;" flags="2" id="org.eclipse.jdt.ui.rename.compilationunit" input="/src\/main\/java=/optional=/true=/=/maven.pomderived=/true=/&lt;com.shopappln.com.exception{GlobalException.java" name="GlobalExceptionHandler.java" references="false" stamp="1765451837918" version="1.0"/>
+</session>

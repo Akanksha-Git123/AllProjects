@@ -1,0 +1,5 @@
+package com.shopappln.com.exception;
+
+public class GlobalException {
+
+}

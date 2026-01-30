@@ -1,0 +1,33 @@
+package com.shopappln.com.controller;
+
+import com.shopappln.com.entity.Order;
+import com.shopappln.com.repository.OrderRepository;
+import com.shopappln.com.service.OrderService;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/orders")
+public class OrderController {
+
+    private final OrderService service;
+    private final OrderRepository orderRepo;
+
+    public OrderController(OrderService service, OrderRepository orderRepo) {
+        this.service = service;
+        this.orderRepo = orderRepo;
+    }
+
+    // ✅ place order
+    @PostMapping
+    public Order create(@RequestBody com.shopappln.com.dto.CreateOrderRequest request) {
+        return service.createOrder(request);
+    }
+
+    // ✅ order history by user
+    @GetMapping("/user/{userId}")
+    public List<Order> getByUser(@PathVariable Long userId) {
+        return orderRepo.findByUserId(userId);
+    }
+} 
